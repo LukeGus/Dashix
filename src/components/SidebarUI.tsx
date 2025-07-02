@@ -5,6 +5,8 @@ import {
     User2,
 } from "lucide-react";
 
+import { useNavigate, useRouter } from "@tanstack/react-router";
+
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import {
     Sidebar,
@@ -34,14 +36,14 @@ import {
 // Example data
 const items = [
     {
-        title: "Home",
-        url: "#",
+        title: "Compose Builder",
+        url: "/docker/compose-builder", // Note: leading slash is important
         icon: Container,
         group: "Docker",
     },
 ];
 
-// Group items by the `group` property
+// Group by `group`
 const groupedItems = items.reduce<Record<string, typeof items>>((acc, item) => {
     if (!acc[item.group]) acc[item.group] = [];
     acc[item.group].push(item);
@@ -49,12 +51,20 @@ const groupedItems = items.reduce<Record<string, typeof items>>((acc, item) => {
 }, {});
 
 export function SidebarUI({}: {}) {
+    const navigate = useNavigate();
+    const router = useRouter();
+    const location = router.state.location;
+
     return (
         <SidebarProvider>
-            <Sidebar>
+            <Sidebar className="w-64">
                 <SidebarContent className="gap-y-0">
                     {Object.entries(groupedItems).map(([groupName, groupItems]) => (
-                        <Collapsible key={groupName} defaultOpen className="group/collapsible mb-0">
+                        <Collapsible
+                            key={groupName}
+                            defaultOpen
+                            className="group/collapsible mb-0"
+                        >
                             <SidebarGroup>
                                 <SidebarGroupLabel asChild>
                                     <CollapsibleTrigger className="flex items-center cursor-pointer">
@@ -65,16 +75,25 @@ export function SidebarUI({}: {}) {
                                 <CollapsibleContent>
                                     <SidebarGroupContent>
                                         <SidebarMenu>
-                                            {groupItems.map((item) => (
-                                                <SidebarMenuItem key={item.title}>
-                                                    <SidebarMenuButton asChild>
-                                                        <a href={item.url}>
+                                            {groupItems.map((item) => {
+                                                const isActive = location.pathname === item.url;
+
+                                                return (
+                                                    <SidebarMenuItem key={item.title}>
+                                                        <SidebarMenuButton
+                                                            className={isActive ? "bg-muted" : ""}
+                                                            onClick={() => {
+                                                                if (!isActive) {
+                                                                    navigate({ to: item.url });
+                                                                }
+                                                            }}
+                                                        >
                                                             <item.icon />
                                                             <span>{item.title}</span>
-                                                        </a>
-                                                    </SidebarMenuButton>
-                                                </SidebarMenuItem>
-                                            ))}
+                                                        </SidebarMenuButton>
+                                                    </SidebarMenuItem>
+                                                );
+                                            })}
                                         </SidebarMenu>
                                     </SidebarGroupContent>
                                 </CollapsibleContent>
@@ -99,9 +118,6 @@ export function SidebarUI({}: {}) {
                                 >
                                     <DropdownMenuItem>
                                         <span>Account</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                        <span>Billing</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem>
                                         <span>Sign out</span>
