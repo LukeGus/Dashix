@@ -1,21 +1,21 @@
 import { defineConfig } from 'vite'
 import viteReact from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
-import { resolve } from 'node:path'
+import tailwindcss from '@tailwindcss/vite'
 
-// https://vitejs.dev/config/
+// Fix __dirname for ESM
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = resolve(__filename, '..')
+
 export default defineConfig({
   plugins: [
     TanStackRouterVite({ autoCodeSplitting: true }),
     viteReact(),
     tailwindcss(),
   ],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-  },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
