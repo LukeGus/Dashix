@@ -1,3 +1,4 @@
+import {AuthCard} from "@/components/AuthCard.tsx";
 import {
     ChevronUp,
     ChevronDown,
@@ -33,6 +34,8 @@ import {
     CollapsibleContent,
 } from "@/components/ui/collapsible.tsx";
 
+import { useState } from "react";
+
 // Example data
 const items = [
     {
@@ -54,8 +57,10 @@ export function SidebarUI({}: {}) {
     const navigate = useNavigate();
     const router = useRouter();
     const location = router.state.location;
+    const [isAuthCardHidden, setAuthCardHidden] = useState(true);
 
     return (
+        <>
         <SidebarProvider>
             <Sidebar className="w-64">
                 <SidebarContent className="gap-y-0">
@@ -69,7 +74,8 @@ export function SidebarUI({}: {}) {
                                 <SidebarGroupLabel asChild>
                                     <CollapsibleTrigger className="flex items-center cursor-pointer">
                                         {groupName}
-                                        <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                                        <ChevronDown
+                                            className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"/>
                                     </CollapsibleTrigger>
                                 </SidebarGroupLabel>
                                 <CollapsibleContent>
@@ -84,11 +90,11 @@ export function SidebarUI({}: {}) {
                                                             className={isActive ? "bg-muted" : ""}
                                                             onClick={() => {
                                                                 if (!isActive) {
-                                                                    navigate({ to: item.url });
+                                                                    navigate({to: item.url});
                                                                 }
                                                             }}
                                                         >
-                                                            <item.icon />
+                                                            <item.icon/>
                                                             <span>{item.title}</span>
                                                         </SidebarMenuButton>
                                                     </SidebarMenuItem>
@@ -108,15 +114,15 @@ export function SidebarUI({}: {}) {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <SidebarMenuButton>
-                                        <User2 /> Username
-                                        <ChevronUp className="ml-auto" />
+                                        <User2/> Username
+                                        <ChevronUp className="ml-auto"/>
                                     </SidebarMenuButton>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent
                                     side="top"
                                     className="w-[--radix-popper-anchor-width]"
                                 >
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setAuthCardHidden((h) => !h)}>
                                         <span>Account</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem>
@@ -129,5 +135,8 @@ export function SidebarUI({}: {}) {
                 </SidebarFooter>
             </Sidebar>
         </SidebarProvider>
+
+        <AuthCard isHidden={isAuthCardHidden} setIsHidden={setAuthCardHidden} />
+        </>
     );
 }

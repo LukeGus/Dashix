@@ -3,8 +3,8 @@ import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {useGoogleLogin} from "@react-oauth/google";
 import {useState} from "react";
 
-export function AuthCard() {
-    const [userInfo, setUserInfo] = useState(null);
+export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHidden: (hidden: boolean) => void }) {
+    const [userInfo, setUserInfo] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [userLoaded, setUserLoaded] = useState(false);
 
@@ -58,39 +58,59 @@ export function AuthCard() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen">
-            <Card
-                className="w-full max-w-sm z-10"
-                style={{
-                    backgroundColor: "#18181b",
-                }}
-            >
-                <CardHeader>
-                    <CardTitle>Account</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleLoginClick}
-                        disabled={isLoading || userLoaded}
+        <>
+            {!isHidden && (
+                <div
+                    className="fixed inset-0 flex items-center justify-center z-50 bg-black/40"
+                    onClick={e => {
+                        if (e.target === e.currentTarget) setIsHidden(true);
+                    }}
+                >
+                    <Card
+                        className="w-full max-w-md z-10 shadow-2xl relative"
                         style={{
-                            backgroundColor: "#27272a",
+                            backgroundColor: "#18181b",
                         }}
                     >
-                        {isLoading ? "Logging in..." : userInfo ? "Logged in with Google" : "Login with Google"}
-                    </Button>
+                        <button
+                            onClick={() => setIsHidden(true)}
+                            className="absolute top-3 right-3 text-gray-400 hover:text-white text-xl font-bold focus:outline-none"
+                            aria-label="Close"
+                        >
+                            ×
+                        </button>
+                        <CardHeader>
+                            <CardTitle>Account</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={handleLoginClick}
+                                disabled={isLoading || userLoaded}
+                                style={{
+                                    backgroundColor: "#27272a",
+                                }}
+                            >
+                                {isLoading
+                                    ? "Logging in..."
+                                    : userInfo
+                                        ? "Logged in with Google"
+                                        : "Login with Google"}
+                            </Button>
 
-                    {userInfo && (
-                        <div>
-                            <h3>User Info</h3>
-                            <img src={userInfo.picture} alt="User avatar" />
-                            <p>Name: {userInfo.name}</p>
-                            <p>Email: {userInfo.email}</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+                            {userInfo && (
+                                <div>
+                                    <h3>User Info</h3>
+                                    <img src={userInfo.picture} alt="User avatar" />
+                                    <p>Name: {userInfo.name}</p>
+                                    <p>Email: {userInfo.email}</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+        </>
     );
 }
