@@ -7,9 +7,6 @@ export const Route = createRootRoute({
     component: () => (
         <GoogleOAuthProvider clientId="871870849443-1402040dfqch4u79jaioo4fjqj3brc6t.apps.googleusercontent.com">
             <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-                <div className="flex min-h-screen">
-                    <SidebarUI/>
-                </div>
                 <Outlet/>
             </ThemeProvider>
         </GoogleOAuthProvider>

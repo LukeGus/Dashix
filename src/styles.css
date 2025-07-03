@@ -159,3 +159,31 @@ code {
         @apply bg-background text-foreground;
     }
 }
+
+/* Match CodeMirror background to sidebar color */
+.cm-theme, .cm-editor, .cm-editor .cm-scroller {
+  background: var(--color-sidebar) !important;
+}
+
+.cm-gutters {
+  background: var(--color-sidebar) !important;
+  border-right: none !important;
+}
+
+/* Hide horizontal scrollbars everywhere, but keep vertical scrollbars */
+::-webkit-scrollbar:horizontal {
+  display: none;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+}
+*::-webkit-scrollbar:horizontal {
+  height: 0 !important;
+}
+
+/* Prevent accidental horizontal scrolling */
+html, body, #root {
+  overflow-x: hidden !important;
+}
