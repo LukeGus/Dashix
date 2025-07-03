@@ -279,9 +279,6 @@ function App() {
         );
         updateYaml(newServices);
     }
-    function selectService(idx: number) {
-        setSelectedIdx(idx);
-    }
 
     // Update port field
     function updatePortField(idx: number, field: 'host' | 'container', value: string) {
@@ -335,21 +332,6 @@ function App() {
         const newServices = [...services];
         if (!newServices[selectedIdx].healthcheck) newServices[selectedIdx].healthcheck = { test: '', interval: '', timeout: '', retries: '', start_period: '', start_interval: '' };
         newServices[selectedIdx].healthcheck![field] = value;
-        setServices(newServices);
-        updateYaml(newServices);
-    }
-    function addHealthcheckField() {
-        if (typeof selectedIdx !== 'number') return;
-        const newServices = [...services];
-        if (!newServices[selectedIdx].healthcheck) newServices[selectedIdx].healthcheck = { test: '', interval: '', timeout: '', retries: '', start_period: '', start_interval: '' };
-        newServices[selectedIdx].healthcheck!.test = '';
-        setServices(newServices);
-        updateYaml(newServices);
-    }
-    function removeHealthcheckField() {
-        if (typeof selectedIdx !== 'number') return;
-        const newServices = [...services];
-        newServices[selectedIdx].healthcheck = undefined;
         setServices(newServices);
         updateYaml(newServices);
     }

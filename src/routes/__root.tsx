@@ -1,6 +1,5 @@
 import {Outlet, createRootRoute} from '@tanstack/react-router'
 import {GoogleOAuthProvider} from "@react-oauth/google";
-import {SidebarUI} from "@/components/SidebarUI.tsx";
 import {ThemeProvider} from "@/components/ThemeProvider.tsx";
 
 export const Route = createRootRoute({

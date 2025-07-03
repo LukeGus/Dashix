@@ -7,7 +7,6 @@ import UserService from "./backend/user"
 export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHidden: (hidden: boolean) => void }) {
     const [userInfo, setUserInfo] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [userLoaded, setUserLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Auto-login on component mount
@@ -19,7 +18,6 @@ export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHi
             try {
                 const user = JSON.parse(savedUserInfo);
                 setUserInfo(user);
-                setUserLoaded(true);
                 
                 // Verify the user still exists in our database
                 UserService.get(user.id).catch(() => {
@@ -27,7 +25,6 @@ export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHi
                     localStorage.removeItem('userInfo');
                     localStorage.removeItem('googleToken');
                     setUserInfo(null);
-                    setUserLoaded(false);
                 });
             } catch (error) {
                 console.error('Error parsing saved user info:', error);
@@ -77,11 +74,9 @@ export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHi
                 // Create user in our database
                 try {
                     await UserService.create(data);
-                    setUserLoaded(true);
                 } catch (apiError: any) {
                     if (apiError.response?.status === 409) {
                         // User already exists, that's fine
-                        setUserLoaded(true);
                     } else {
                         throw apiError;
                     }
@@ -120,7 +115,6 @@ export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHi
         localStorage.removeItem('userInfo');
         localStorage.removeItem('googleToken');
         setUserInfo(null);
-        setUserLoaded(false);
         setError(null);
     };
 
