@@ -65,7 +65,7 @@ export function SidebarUI({}: {}) {
     return (
         <>
         <SidebarProvider>
-            <Sidebar className="w-64">
+            <Sidebar className="w-64 !block !flex !visible" style={{ display: 'flex' }}>
                 <SidebarHeader>
                     <div className="flex flex-col items-center w-full">
                         <div className="flex items-center justify-center w-full py-2 gap-3">

@@ -8,33 +8,17 @@ import { monokaiDimmed } from '@uiw/codemirror-theme-monokai-dimmed';
 interface CodeEditorProps {
     content: string;
     onContentChange: (value: string) => void;
+    width?: number;
+    height?: number;
 }
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({
     content,
     onContentChange,
+    width,
+    height,
 }) => {
-    const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
-        width: window.innerWidth,
-        height: window.innerHeight
-    });
     const [copied, setCopied] = useState(false);
-
-    useEffect(() => {
-        const handleResize = () => {
-            setDimensions({
-                width: window.innerWidth,
-                height: window.innerHeight
-            });
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    // Calculate editor size: half width, minus gap, and full height minus top/bottom gap
-    const GAP = 16; // px, adjust for desired gap
-    const editorWidth = Math.max(320, (dimensions.width / 2) - (GAP * 1.5));
-    const editorHeight = Math.max(200, dimensions.height - (GAP * 2));
 
     const handleCopy = async () => {
         try {
@@ -49,11 +33,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     return (
         <div
             style={{
-                width: editorWidth,
-                height: editorHeight,
-                marginTop: GAP,
-                marginBottom: GAP,
-                marginRight: GAP,
+                width: width ? width : '100%',
+                height: height ? height : '100%',
+                margin: 0,
                 boxSizing: 'border-box',
                 display: 'flex',
                 flexDirection: 'column',
@@ -78,8 +60,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             </Button>
             <CodeMirror
                 value={content}
-                height={`100%`}
-                width={`100%`}
+                height={height ? `${height}px` : `100%`}
+                width={width ? `${width}px` : `100%`}
                 theme={monokaiDimmed}
                 editable={false}
                 extensions={[
