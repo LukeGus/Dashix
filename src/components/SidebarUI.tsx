@@ -1,9 +1,6 @@
-import {AuthCard} from "@/components/AuthCard.tsx";
 import {
-    ChevronUp,
     ChevronDown,
     Container,
-    User2,
 } from "lucide-react";
 
 import { useNavigate, useRouter } from "@tanstack/react-router";
@@ -18,16 +15,8 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarFooter,
     SidebarHeader,
 } from "@/components/ui/sidebar.tsx";
-
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-    DropdownMenuItem,
-} from "@/components/ui/dropdown-menu.tsx";
 
 import {
     Collapsible,
@@ -36,8 +25,6 @@ import {
 } from "@/components/ui/collapsible.tsx";
 
 import { Separator } from "@/components/ui/separator"
-
-import { useState } from "react";
 
 const items = [
     {
@@ -58,7 +45,6 @@ export function SidebarUI({}: {}) {
     const navigate = useNavigate();
     const router = useRouter();
     const location = router.state.location;
-    const [isAuthCardHidden, setAuthCardHidden] = useState(true);
 
     return (
         <>
@@ -131,33 +117,8 @@ export function SidebarUI({}: {}) {
                         </Collapsible>
                     ))}
                 </SidebarContent>
-
-                <SidebarFooter>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <SidebarMenuButton>
-                                        <User2/> Username
-                                        <ChevronUp className="ml-auto"/>
-                                    </SidebarMenuButton>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    side="top"
-                                    className="w-[--radix-popper-anchor-width]"
-                                >
-                                    <DropdownMenuItem onClick={() => setAuthCardHidden((h) => !h)}>
-                                        <span>Account</span>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarFooter>
             </Sidebar>
         </SidebarProvider>
-
-        <AuthCard isHidden={isAuthCardHidden} setIsHidden={setAuthCardHidden} />
         </>
     );
 }

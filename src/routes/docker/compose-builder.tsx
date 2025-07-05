@@ -140,6 +140,8 @@ function App() {
     const [composeLoading, setComposeLoading] = useState(false);
     const [composeError, setComposeError] = useState<string | null>(null);
     const [composeSearch, setComposeSearch] = useState("");
+    const [composeCache, setComposeCache] = useState<any[]>([]);
+    const [composeCacheTimestamp, setComposeCacheTimestamp] = useState<number | null>(null);
     const codeFileRef = useRef<HTMLDivElement>(null);
     const [editorSize, setEditorSize] = useState({ width: 0, height: 0 });
 
@@ -557,6 +559,17 @@ function App() {
 
     useEffect(() => {
         if (!composeStoreOpen) return;
+        
+        const CACHE_DURATION = 60 * 60 * 1000;
+        const now = Date.now();
+
+        if (composeCache.length > 0 && composeCacheTimestamp && (now - composeCacheTimestamp) < CACHE_DURATION) {
+            setComposeFiles(composeCache);
+            setComposeLoading(false);
+            setComposeError(null);
+            return;
+        }
+        
         setComposeLoading(true);
         setComposeError(null);
 
@@ -567,6 +580,8 @@ function App() {
             .then(async (data) => {
                 if (data.error) {
                     setComposeFiles([]);
+                    setComposeCache([]);
+                    setComposeCacheTimestamp(null);
                     setComposeLoading(false);
                     setComposeError(data.message || "Failed to load files from cache.");
                     return;
@@ -574,6 +589,8 @@ function App() {
                 
                 if (!data.files || data.files.length === 0) {
                     setComposeFiles([]);
+                    setComposeCache([]);
+                    setComposeCacheTimestamp(null);
                     setComposeLoading(false);
                     return;
                 }
@@ -606,14 +623,23 @@ function App() {
                         return null;
                     }
                 }));
-                setComposeFiles(fileData.filter(Boolean));
+                
+                const filteredData = fileData.filter(Boolean);
+                setComposeFiles(filteredData);
+                setComposeCache(filteredData);
+                setComposeCacheTimestamp(now);
                 setComposeLoading(false);
             })
             .catch(() => {
                 setComposeError("Failed to fetch compose files from cache.");
                 setComposeLoading(false);
             });
-    }, [composeStoreOpen]);
+    }, [composeStoreOpen, composeCache, composeCacheTimestamp]);
+
+    function refreshComposeStore() {
+        setComposeCache([]);
+        setComposeCacheTimestamp(null);
+    }
 
     function handleAddComposeServiceFull(svc: any, allNetworks: any, allVolumes: any) {
         const serviceData = svc.rawService || {};
@@ -798,15 +824,39 @@ function App() {
                                     className="relative max-w-screen-3xl w-[98vw] min-h-[90vh] rounded-2xl border bg-background p-8 pt-4 shadow-xl"
                                     onClick={e => e.stopPropagation()}
                                 >
-                                    <button
-                                        className="absolute top-4 right-4 text-xl text-muted-foreground hover:text-foreground"
-                                        onClick={() => setComposeStoreOpen(false)}
-                                        aria-label="Close Compose Store"
-                                    >
-                                        ×
-                                    </button>
+                                    <div className="absolute top-4 right-4 flex items-center gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={refreshComposeStore}
+                                            disabled={composeLoading}
+                                            className="flex items-center gap-1"
+                                        >
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                                <path d="M21 3v5h-5"/>
+                                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                                <path d="M3 21v-5h5"/>
+                                            </svg>
+                                            Refresh
+                                        </Button>
+                                        <button
+                                            className="text-xl text-muted-foreground hover:text-foreground"
+                                            onClick={() => setComposeStoreOpen(false)}
+                                            aria-label="Close Compose Store"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
                                     <div className="mb-1 text-2xl font-bold">Compose Store</div>
-                                    <div className="mb-2 mt-0 text-base text-muted-foreground">Browse and import popular self-hosted Docker Compose services.</div>
+                                    <div className="mb-2 mt-0 text-base text-muted-foreground">
+                                        Browse and import popular self-hosted Docker Compose services.
+                                        {composeCacheTimestamp && (
+                                            <span className="ml-2 text-xs">
+                                                (Cached {Math.round((Date.now() - composeCacheTimestamp) / 1000 / 60)}m ago)
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="mb-4 text-xs text-muted-foreground">
                                         Want to contribute? <a 
                                             href="https://github.com/LukeGus/Containix" 
@@ -824,7 +874,9 @@ function App() {
                                         className="mb-4 mt-0 text-base"
                                     />
                                     {composeLoading ? (
-                                        <div className="h-32 flex items-center justify-center text-muted-foreground text-lg">Loading...</div>
+                                        <div className="h-32 flex items-center justify-center text-muted-foreground text-lg">
+                                            {composeCache.length > 0 ? 'Refreshing...' : 'Loading...'}
+                                        </div>
                                     ) : composeError ? (
                                         <div className="h-32 flex items-center justify-center text-destructive text-lg">{composeError}</div>
                                     ) : composeFiles.length === 0 ? (
