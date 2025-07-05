@@ -16,13 +16,11 @@ const http = axios.create({
     headers: {
         "Content-Type": "application/json",
     },
-    withCredentials: true, // Enable credentials for CORS
+    withCredentials: true,
 });
 
-// Add request interceptor to include Google token
 http.interceptors.request.use(
     (config) => {
-        // Get token from localStorage or wherever you store it
         const token = localStorage.getItem('googleToken');
         if (token) {
             config.data = { ...config.data, googleToken: token };
@@ -34,7 +32,6 @@ http.interceptors.request.use(
     }
 );
 
-// Add response interceptor for better error handling
 http.interceptors.response.use(
     (response) => response,
     (error) => {

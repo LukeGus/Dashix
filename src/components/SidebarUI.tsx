@@ -39,17 +39,15 @@ import { Separator } from "@/components/ui/separator"
 
 import { useState } from "react";
 
-// Example data
 const items = [
     {
         title: "Compose Builder",
-        url: "/docker/compose-builder", // Note: leading slash is important
+        url: "/docker/compose-builder",
         icon: Container,
         group: "Docker",
     },
 ];
 
-// Group by `group`
 const groupedItems = items.reduce<Record<string, typeof items>>((acc, item) => {
     if (!acc[item.group]) acc[item.group] = [];
     acc[item.group].push(item);

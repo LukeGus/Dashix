@@ -9,7 +9,6 @@ export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHi
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Auto-login on component mount
     useEffect(() => {
         const savedUserInfo = localStorage.getItem('userInfo');
         const savedToken = localStorage.getItem('googleToken');
@@ -18,16 +17,13 @@ export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHi
             try {
                 const user = JSON.parse(savedUserInfo);
                 setUserInfo(user);
-                
-                // Verify the user still exists in our database
+
                 UserService.get(user.id).catch(() => {
-                    // If user doesn't exist in DB, clear local storage
                     localStorage.removeItem('userInfo');
                     localStorage.removeItem('googleToken');
                     setUserInfo(null);
                 });
             } catch (error) {
-                console.error('Error parsing saved user info:', error);
                 localStorage.removeItem('userInfo');
                 localStorage.removeItem('googleToken');
             }
@@ -39,7 +35,6 @@ export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHi
             const accessToken = tokenResponse.access_token;
 
             if (!accessToken) {
-                console.error('No access token received');
                 setIsLoading(false);
                 setError('No access token received');
                 return;
@@ -47,8 +42,7 @@ export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHi
 
             try {
                 setError(null);
-                
-                // Get user info from Google
+
                 const res = await fetch(
                     'https://www.googleapis.com/oauth2/v1/userinfo?alt=json',
                     {
@@ -63,27 +57,22 @@ export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHi
                 }
 
                 const data = await res.json();
-                
-                // For now, we'll use the access token as the verification token
-                // In production, you should configure Google OAuth to return ID tokens
+
                 localStorage.setItem('googleToken', accessToken);
                 localStorage.setItem('userInfo', JSON.stringify(data));
                 
                 setUserInfo(data);
 
-                // Create user in our database
                 try {
                     await UserService.create(data);
                 } catch (apiError: any) {
                     if (apiError.response?.status === 409) {
-                        // User already exists, that's fine
                     } else {
                         throw apiError;
                     }
                 }
 
             } catch (error: any) {
-                console.error('Error during login:', error);
                 setError(error.message || 'Login failed');
                 localStorage.removeItem('userInfo');
                 localStorage.removeItem('googleToken');
@@ -93,13 +82,11 @@ export function AuthCard({ isHidden, setIsHidden }: { isHidden: boolean, setIsHi
         },
         scope: "openid email profile",
         flow: "implicit",
-        onError: (error) => {
-            console.error("Login failed:", error);
+        onError: () => {
             setError('Login failed');
             setIsLoading(false);
         },
-        onNonOAuthError: (error) => {
-            console.error("Non auth error:", error);
+        onNonOAuthError: () => {
             setError('Authentication error');
             setIsLoading(false);
         }

@@ -13,14 +13,11 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Toggle } from "@/components/ui/toggle";
 import { load } from "js-yaml";
 
-console.log('typeof yaml:', typeof load, 'yaml:', load);
-
 export const Route = createFileRoute('/docker/compose-builder')({
     component: App,
 });
 
-// Type for a single service
-interface PortMapping { host: string; container: string; }
+interface PortMapping { host: string; container: string; protocol: string; }
 interface VolumeMapping { host: string; container: string; read_only?: boolean; }
 interface Healthcheck {
     test: string;
@@ -139,8 +136,7 @@ function App() {
     const [networks, setNetworks] = useState<NetworkConfig[]>([]);
     const [volumes, setVolumes] = useState<VolumeConfig[]>([]);
     const [composeStoreOpen, setComposeStoreOpen] = useState(false);
-    // Compose Store state
-    const [composeFiles, setComposeFiles] = useState<any[]>([]); // [{name, url, services: [{name, image, rawService}] }]
+    const [composeFiles, setComposeFiles] = useState<any[]>([]);
     const [composeLoading, setComposeLoading] = useState(false);
     const [composeError, setComposeError] = useState<string | null>(null);
     const [composeSearch, setComposeSearch] = useState("");
@@ -159,36 +155,26 @@ function App() {
         return () => ro.disconnect();
     }, [codeFileRef]);
 
-    // Generate YAML from services, networks, and volumes state
     function generateYaml(services: ServiceConfig[], networks: NetworkConfig[], volumes: VolumeConfig[]): string {
-        // Compose root object
         const compose: any = { services: {} };
         services.forEach((svc) => {
             if (!svc.name) return;
-            
-            // Helper function to properly split command strings while preserving quoted parts
+
             const parseCommandString = (cmd: string): string[] => {
                 if (!cmd) return [];
-                // Handle the case where the command is already an array
                 if (Array.isArray(cmd)) {
                     return cmd;
                 }
-                
-                // Try to parse as JSON first (for arrays stored as JSON strings)
+
                 try {
                     const parsed = JSON.parse(cmd);
                     if (Array.isArray(parsed)) {
                         return parsed;
                     }
                 } catch (e) {
-                    // Not JSON, continue with string parsing
                 }
-                
-                // Split by spaces but preserve quoted strings as single elements
-                // This regex matches: quoted strings OR unquoted words
                 const parts = cmd.match(/(?:"[^"]*"|'[^']*'|\S+)/g) || [];
                 return parts.map(part => {
-                    // Remove outer quotes but preserve the content
                     const trimmed = part.replace(/^["']|["']$/g, '');
                     return trimmed;
                 });
@@ -200,7 +186,7 @@ function App() {
                 command: svc.command ? parseCommandString(svc.command) : undefined,
                 restart: svc.restart || undefined,
                 ports: svc.ports.length
-                    ? svc.ports.map(p => p.host && p.container ? `${p.host}:${p.container}` : p.container ? p.container : undefined).filter(Boolean)
+                    ? svc.ports.map(p => p.host && p.container ? `${p.host}:${p.container}/${p.protocol || 'tcp'}` : p.container ? p.container : undefined).filter(Boolean)
                     : undefined,
                 volumes: svc.volumes.length
                     ? svc.volumes.map(v => {
@@ -239,13 +225,11 @@ function App() {
                 (k) => compose.services[name][k] === undefined && delete compose.services[name][k]
             );
         }
-        // Always add all networks
         if (networks.length) {
             compose.networks = {};
             networks.forEach(n => {
                 if (!n.name) return;
                 if (n.external) {
-                    // External networks should be just "external: true" or "external: { name: 'name' }"
                     compose.networks[n.name] = {
                         external: n.name_external ? { name: n.name_external } : true,
                     };
@@ -269,60 +253,49 @@ function App() {
                 );
             });
         }
-        // Always add all volumes
         if (volumes.length) {
             compose.volumes = {};
             volumes.forEach(v => {
                 if (!v.name) return;
                 if (v.external) {
-                    // External volumes can have additional fields like driver
                     const externalVolume: any = {
                         external: v.name_external ? { name: v.name_external } : true,
                     };
-                    
-                    // Add driver if specified (external volumes can have drivers)
+
                     if (v.driver) {
                         externalVolume.driver = v.driver;
                     }
-                    
-                    // Build driver_opts object from individual fields and custom driver_opts
+
                     const driverOpts: Record<string, string> = {};
-                    
-                    // Add custom driver_opts
+
                     if (v.driver_opts && v.driver_opts.length) {
                         v.driver_opts.filter(opt => opt.key).forEach(({ key, value }) => {
                             driverOpts[key] = value;
                         });
                     }
-                    
-                    // Add specific driver_opts fields if they have values
+
                     if (v.driver_opts_type) driverOpts.type = v.driver_opts_type;
                     if (v.driver_opts_device) driverOpts.device = v.driver_opts_device;
                     if (v.driver_opts_o) driverOpts.o = v.driver_opts_o;
-                    
-                    // Add driver_opts if we have any
+
                     if (Object.keys(driverOpts).length > 0) {
                         externalVolume.driver_opts = driverOpts;
                     }
-                    
-                    // Add labels if specified
+
                     if (v.labels && v.labels.length) {
                         externalVolume.labels = v.labels.filter(l => l.key).map(({ key, value }) => `"${key}=${value}"`);
                     }
                     
                     compose.volumes[v.name] = externalVolume;
                 } else {
-                    // Build driver_opts object from individual fields and custom driver_opts
                     const driverOpts: Record<string, string> = {};
-                    
-                    // Add custom driver_opts
+
                     if (v.driver_opts && v.driver_opts.length) {
                         v.driver_opts.filter(opt => opt.key).forEach(({ key, value }) => {
                             driverOpts[key] = value;
                         });
                     }
-                    
-                    // Add specific driver_opts fields if they have values
+
                     if (v.driver_opts_type) driverOpts.type = v.driver_opts_type;
                     if (v.driver_opts_device) driverOpts.device = v.driver_opts_device;
                     if (v.driver_opts_o) driverOpts.o = v.driver_opts_o;
@@ -341,12 +314,10 @@ function App() {
         return yamlStringify(compose);
     }
 
-    // Simple YAML stringifier for this use case
     function yamlStringify(obj: any, indent = 0, parentKey = ''): string {
         const pad = (n: number) => '  '.repeat(n);
         if (typeof obj !== 'object' || obj === null) return String(obj);
         if (Array.isArray(obj)) {
-            // Check if this array should be single-line (command, entrypoint, healthcheck test)
             const shouldBeSingleLine = ['command', 'entrypoint'].includes(parentKey) || 
                                      (parentKey === 'test' && indent > 0);
             if (shouldBeSingleLine && obj.length > 0 && typeof obj[0] === 'string') {
@@ -354,7 +325,6 @@ function App() {
             }
             return obj.map((v) => `\n${pad(indent)}- ${yamlStringify(v, indent + 1, parentKey).trimStart()}`).join('');
         }
-        // Remove leading newline for top-level
         const entries = Object.entries(obj)
             .map(([k, v]) => {
                 if (v === undefined) return '';
@@ -362,7 +332,6 @@ function App() {
                     return `\n${pad(indent)}${k}:` + yamlStringify(v, indent + 1, k);
                 }
                 if (Array.isArray(v)) {
-                    // Special handling for command, entrypoint, and healthcheck test
                     if (['command', 'entrypoint'].includes(k) || (k === 'test' && indent > 0)) {
                         return `\n${pad(indent)}${k}: [${v.map(item => `"${item}"`).join(', ')}]`;
                     }
@@ -374,12 +343,10 @@ function App() {
         return indent === 0 && entries.startsWith('\n') ? entries.slice(1) : entries;
     }
 
-    // Always update YAML when services, networks, or volumes change
     useEffect(() => {
         setYaml(generateYaml(services, networks, volumes));
     }, [services, networks, volumes]);
 
-    // Handle service field change
     function updateServiceField(field: keyof ServiceConfig, value: any) {
         if (typeof selectedIdx !== 'number') return;
         const newServices = [...services];
@@ -387,7 +354,6 @@ function App() {
         setServices(newServices);
     }
 
-    // Handle dynamic list field change (ports, volumes, env)
     function updateListField(field: keyof ServiceConfig, idx: number, value: any) {
         if (typeof selectedIdx !== 'number') return;
         const newServices = [...services];
@@ -413,7 +379,6 @@ function App() {
         setServices(newServices);
     }
 
-    // Add/remove/select service
     function addService() {
         const newServices = [...services, defaultService()];
         setServices(newServices);
@@ -433,17 +398,20 @@ function App() {
         );
     }
 
-    // Update port field
-    function updatePortField(idx: number, field: 'host' | 'container', value: string) {
+    function updatePortField(idx: number, field: 'host' | 'container' | 'protocol', value: string) {
         if (typeof selectedIdx !== 'number') return;
         const newServices = [...services];
-        newServices[selectedIdx].ports[idx][field] = value.replace(/[^0-9]/g, '');
+        if (field === 'protocol') {
+            newServices[selectedIdx].ports[idx][field] = value;
+        } else {
+            newServices[selectedIdx].ports[idx][field] = value.replace(/[^0-9]/g, '');
+        }
         setServices(newServices);
     }
     function addPortField() {
         if (typeof selectedIdx !== 'number') return;
         const newServices = [...services];
-        newServices[selectedIdx].ports.push({ host: '', container: '' });
+        newServices[selectedIdx].ports.push({ host: '', container: '', protocol: 'tcp' });
         setServices(newServices);
     }
     function removePortField(idx: number) {
@@ -453,7 +421,6 @@ function App() {
         setServices(newServices);
     }
 
-    // Update volume field
     function updateVolumeField(idx: number, field: 'host' | 'container' | 'read_only', value: string | boolean) {
         if (typeof selectedIdx !== 'number') return;
         const newServices = [...services];
@@ -473,7 +440,6 @@ function App() {
         setServices(newServices);
     }
 
-    // Update healthcheck field
     function updateHealthcheckField(field: keyof Healthcheck, value: string) {
         if (typeof selectedIdx !== 'number') return;
         const newServices = [...services];
@@ -482,7 +448,6 @@ function App() {
         setServices(newServices);
     }
 
-    // Update depends_on field
     function updateDependsOn(idx: number, value: string) {
         if (typeof selectedIdx !== 'number') return;
         const newServices = [...services];
@@ -503,7 +468,6 @@ function App() {
         setServices(newServices);
     }
 
-    // Network management
     function addNetwork() {
         const newNetworks = [...networks, defaultNetwork()];
         setNetworks(newNetworks);
@@ -514,7 +478,6 @@ function App() {
     }
     function updateNetwork(idx: number, field: keyof NetworkConfig, value: any) {
         const newNetworks = [...networks];
-        // If renaming, update all service references
         if (field === 'name') {
             const oldName = newNetworks[idx].name;
             newNetworks[idx][field] = value;
@@ -536,13 +499,11 @@ function App() {
         const removedName = newNetworks[idx].name;
         newNetworks.splice(idx, 1);
         setNetworks(newNetworks);
-        // Remove from all services
         const newServices = services.map(svc => ({
             ...svc,
             networks: svc.networks?.filter(n => n !== removedName) || [],
         }));
         setServices(newServices);
-        // Reset selection: if no networks left, go to service; else, select first network
         if (newNetworks.length === 0) {
             setSelectedType('service');
             setSelectedNetworkIdx(null);
@@ -550,7 +511,6 @@ function App() {
             setSelectedNetworkIdx(0);
         }
     }
-    // Volume management
     function addVolume() {
         const newVolumes = [...volumes, defaultVolume()];
         setVolumes(newVolumes);
@@ -561,7 +521,6 @@ function App() {
     }
     function updateVolume(idx: number, field: keyof VolumeConfig, value: any) {
         const newVolumes = [...volumes];
-        // If renaming, update all service references
         if (field === 'name') {
             const oldName = newVolumes[idx].name;
             newVolumes[idx][field] = value;
@@ -583,13 +542,11 @@ function App() {
         const removedName = newVolumes[idx].name;
         newVolumes.splice(idx, 1);
         setVolumes(newVolumes);
-        // Remove from all services
         const newServices = services.map(svc => ({
             ...svc,
             volumes: svc.volumes?.filter(v => v.host !== removedName) || [],
         }));
         setServices(newServices);
-        // Reset selection: if no volumes left, go to service; else, select first volume
         if (newVolumes.length === 0) {
             setSelectedType('service');
             setSelectedVolumeIdx(null);
@@ -598,13 +555,11 @@ function App() {
         }
     }
 
-    // Fetch compose files from Cloudflare Worker when modal opens
     useEffect(() => {
         if (!composeStoreOpen) return;
         setComposeLoading(true);
         setComposeError(null);
-        
-        // Replace this URL with your deployed Cloudflare Worker URL
+
         const workerUrl = 'https://dashix-compose-store.bugattiguy527.workers.dev';
         
         fetch(workerUrl)
@@ -617,8 +572,6 @@ function App() {
                     return;
                 }
                 
-                console.log('Cached compose files:', data.files?.length || 0);
-                
                 if (!data.files || data.files.length === 0) {
                     setComposeFiles([]);
                     setComposeLoading(false);
@@ -627,47 +580,48 @@ function App() {
                 
                 const fileData = await Promise.all(data.files.map(async (file: any) => {
                     try {
-                        console.log('Processing file:', file.name);
                         const doc = load(file.rawText) as any;
-                        console.log('Parsed doc for', file.name, ':', doc);
-                        const services = doc && doc.services ? Object.entries(doc.services).map(([svcName, svcObj]: [string, any]) => ({
-                            name: svcName,
-                            image: svcObj.image || '',
-                            rawService: svcObj,
-                        })) : [];
+                        const servicesArray = doc && doc.services ? Object.entries(doc.services).map(([svcName, svcObj]: [string, any]) => {
+                            return {
+                                name: svcName,
+                                image: svcObj.image || '',
+                                rawService: svcObj,
+                            };
+                        }) : [];
+
+                        const servicesObject = servicesArray.reduce((acc, service) => {
+                            acc[service.name] = service;
+                            return acc;
+                        }, {} as Record<string, any>);
+                        
                         return {
                             name: file.name,
                             url: file.url,
-                            services,
+                            services: servicesObject,
                             networks: doc && doc.networks ? doc.networks : {},
                             volumes: doc && doc.volumes ? doc.volumes : {},
                             rawText: file.rawText,
                         };
                     } catch (e) {
-                        console.error('Error processing file:', file.name, e);
                         return null;
                     }
                 }));
                 setComposeFiles(fileData.filter(Boolean));
                 setComposeLoading(false);
             })
-            .catch(e => {
-                console.error('Error fetching from worker:', e);
+            .catch(() => {
                 setComposeError("Failed to fetch compose files from cache.");
                 setComposeLoading(false);
             });
     }, [composeStoreOpen]);
 
-    // Add a new function to import all fields from a service
     function handleAddComposeServiceFull(svc: any, allNetworks: any, allVolumes: any) {
-        // Map all possible fields from the rawService
-        const raw = svc.rawService || {};
-        
-        // Helper function to properly parse command/entrypoint arrays
+        const serviceData = svc.rawService || {};
+
+        const actualServiceData = serviceData.rawService || serviceData;
+
         const parseCommandArray = (cmd: any): string => {
             if (Array.isArray(cmd)) {
-                // Preserve the array structure by storing it as a JSON string
-                // This will be parsed back to an array during export
                 return JSON.stringify(cmd);
             }
             return cmd || '';
@@ -677,52 +631,62 @@ function App() {
             ...defaultService(),
             name: svc.name,
             image: svc.image,
-            container_name: raw.container_name || '',
-            command: parseCommandArray(raw.command),
-            restart: raw.restart || '',
-            ports: Array.isArray(raw.ports) ? raw.ports.map((p: string) => {
-                const [host, container] = p.split(':');
-                return container ? { host, container } : { host: '', container: host };
+            container_name: actualServiceData.container_name || '',
+            command: parseCommandArray(actualServiceData.command),
+            restart: actualServiceData.restart || '',
+            ports: Array.isArray(actualServiceData.ports) ? actualServiceData.ports.map((p: string) => {
+                const parts = p.split(':');
+                const host = parts[0];
+                const containerWithProtocol = parts[1] || '';
+                const [container, protocol] = containerWithProtocol.split('/');
+                const result = { 
+                    host, 
+                    container, 
+                    protocol: protocol || 'tcp'
+                };
+                return result;
             }) : [],
-            volumes: Array.isArray(raw.volumes) ? raw.volumes.map((v: string) => {
-                // Handle volume format like "host:container:ro" or "host:container"
+            volumes: Array.isArray(actualServiceData.volumes) ? actualServiceData.volumes.map((v: string) => {
                 const parts = v.split(':');
                 const host = parts[0];
                 const container = parts[1] || '';
                 const read_only = parts[2] === 'ro';
-                return { host, container, read_only };
+                const result = { host, container, read_only };
+                return result;
             }) : [],
-            environment: Array.isArray(raw.environment) ? raw.environment.map((e: string) => {
+            environment: Array.isArray(actualServiceData.environment) ? actualServiceData.environment.map((e: string) => {
                 const [key, ...rest] = e.split('=');
                 return { key, value: rest.join('=') };
-            }) : (raw.environment && typeof raw.environment === 'object' ? Object.entries(raw.environment).map(([key, value]: [string, any]) => ({ key, value: String(value) })) : []),
-            healthcheck: raw.healthcheck ? {
-                test: parseCommandArray(raw.healthcheck.test),
-                interval: raw.healthcheck.interval || '',
-                timeout: raw.healthcheck.timeout || '',
-                retries: raw.healthcheck.retries ? String(raw.healthcheck.retries) : '',
-                start_period: raw.healthcheck.start_period || '',
-                start_interval: raw.healthcheck.start_interval || '',
+            }) : (actualServiceData.environment && typeof actualServiceData.environment === 'object' ? Object.entries(actualServiceData.environment).map(([key, value]: [string, any]) => ({ key, value: String(value) })) : []),
+            healthcheck: actualServiceData.healthcheck ? {
+                test: parseCommandArray(actualServiceData.healthcheck.test),
+                interval: actualServiceData.healthcheck.interval || '',
+                timeout: actualServiceData.healthcheck.timeout || '',
+                retries: actualServiceData.healthcheck.retries ? String(actualServiceData.healthcheck.retries) : '',
+                start_period: actualServiceData.healthcheck.start_period || '',
+                start_interval: actualServiceData.healthcheck.start_interval || '',
             } : undefined,
-            depends_on: Array.isArray(raw.depends_on) ? raw.depends_on : (raw.depends_on ? Object.keys(raw.depends_on) : []),
-            entrypoint: parseCommandArray(raw.entrypoint),
-            env_file: Array.isArray(raw.env_file) ? raw.env_file.join(',') : (raw.env_file || ''),
-            extra_hosts: Array.isArray(raw.extra_hosts) ? raw.extra_hosts : [],
-            dns: Array.isArray(raw.dns) ? raw.dns : [],
-            networks: Array.isArray(raw.networks) ? raw.networks : (raw.networks ? Object.keys(raw.networks) : []),
-            user: raw.user || '',
-            working_dir: raw.working_dir || '',
-            labels: raw.labels ? (Array.isArray(raw.labels)
-                ? raw.labels.map((l: string) => {
+            depends_on: Array.isArray(actualServiceData.depends_on) ? actualServiceData.depends_on : (actualServiceData.depends_on ? Object.keys(actualServiceData.depends_on) : []),
+            entrypoint: parseCommandArray(actualServiceData.entrypoint),
+            env_file: Array.isArray(actualServiceData.env_file) ? actualServiceData.env_file.join(',') : (actualServiceData.env_file || ''),
+            extra_hosts: Array.isArray(actualServiceData.extra_hosts) ? actualServiceData.extra_hosts : [],
+            dns: Array.isArray(actualServiceData.dns) ? actualServiceData.dns : [],
+            networks: Array.isArray(actualServiceData.networks) ? actualServiceData.networks : (actualServiceData.networks ? Object.keys(actualServiceData.networks) : []),
+            user: actualServiceData.user || '',
+            working_dir: actualServiceData.working_dir || '',
+            labels: actualServiceData.labels ? (Array.isArray(actualServiceData.labels)
+                ? actualServiceData.labels.map((l: string) => {
                     const [key, ...rest] = l.split('=');
                     return { key, value: rest.join('=') };
                 })
-                : Object.entries(raw.labels).map(([key, value]: [string, any]) => ({ key, value: String(value) }))) : [],
-            privileged: raw.privileged !== undefined ? !!raw.privileged : undefined,
-            read_only: raw.read_only !== undefined ? !!raw.read_only : undefined,
+                : Object.entries(actualServiceData.labels).map(([key, value]: [string, any]) => ({ key, value: String(value) }))) : [],
+            privileged: actualServiceData.privileged !== undefined ? !!actualServiceData.privileged : undefined,
+            read_only: actualServiceData.read_only !== undefined ? !!actualServiceData.read_only : undefined,
         };
-        setServices(prev => [...prev, newService]);
-        // Add networks and volumes to state if not already present
+        setServices(prev => {
+            const updated = [...prev, newService];
+            return updated;
+        });
         if (allNetworks && Object.keys(allNetworks).length > 0) {
             const networkConfigs: NetworkConfig[] = Object.entries(allNetworks).map(([name, config]: [string, any]) => ({
                 name,
@@ -753,7 +717,6 @@ function App() {
         }
         if (allVolumes && Object.keys(allVolumes).length > 0) {
             const volumeConfigs: VolumeConfig[] = Object.entries(allVolumes).map(([name, config]: [string, any]) => {
-                // Extract specific driver_opts fields
                 let driverOptsType = '';
                 let driverOptsDevice = '';
                 let driverOptsO = '';
@@ -788,11 +751,13 @@ function App() {
             });
         }
         setSelectedType('service');
-        setSelectedIdx(services.length); // Focus new service
+        setSelectedIdx(prev => {
+            const newIndex = (prev || 0) + 1;
+            return newIndex;
+        });
         setComposeStoreOpen(false);
     }
 
-    // Initial YAML
     if (!yaml) setYaml(generateYaml(services, networks, volumes));
 
     const svc = selectedIdx !== null && typeof selectedIdx === 'number' && services[selectedIdx] ? services[selectedIdx] : services[0];
@@ -804,9 +769,6 @@ function App() {
         { value: 'on-failure', label: 'on-failure' },
         { value: 'unless-stopped', label: 'unless-stopped' },
     ];
-
-    // Add debug log before rendering
-    console.log('composeFiles for UI:', composeFiles);
 
     return (
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -882,9 +844,12 @@ function App() {
                                                             <div className="font-bold text-lg break-words w-full min-h-0">{file.name.replace('.yml', '')}</div>
                                                             <div className="text-sm text-muted-foreground break-words w-full min-h-0">{Object.keys(file.services || {}).length} service{Object.keys(file.services || {}).length !== 1 ? 's' : ''}</div>
                                                             <Button size="sm" className="mt-2 w-full" onClick={() => {
-                                                                // Import all services from this compose file
-                                                                Object.entries(file.services || {}).forEach(([serviceData]: [string, any]) => {
-                                                                    handleAddComposeServiceFull(serviceData, file.networks, file.volumes);
+                                                                Object.entries(file.services || {}).forEach(([serviceName, serviceData]: [string, any]) => {
+                                                                    handleAddComposeServiceFull({
+                                                                        name: serviceName,
+                                                                        image: serviceData.image || '',
+                                                                        rawService: serviceData,
+                                                                    }, file.networks, file.volumes);
                                                                 });
                                                             }}>
                                                                 Add All Services
@@ -1011,9 +976,27 @@ function App() {
                                     <div className="flex flex-col gap-2">
                                         {svc.ports.map((port, idx) => (
                                             <div key={idx} className="flex gap-2 items-center">
-                                                <Input type="number" min="1" max="65535" value={port.host} onChange={e => updatePortField(idx, 'host', e.target.value)} placeholder="Host" className="w-1/2" />
+                                                <Input type="number" min="1" max="65535" value={port.host} onChange={e => updatePortField(idx, 'host', e.target.value)} placeholder="Host" className="w-1/3" />
                                                 <span>→</span>
-                                                <Input type="number" min="1" max="65535" value={port.container} onChange={e => updatePortField(idx, 'container', e.target.value)} placeholder="Container" className="w-1/2" />
+                                                <Input type="number" min="1" max="65535" value={port.container} onChange={e => updatePortField(idx, 'container', e.target.value)} placeholder="Container" className="w-1/3" />
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="outline" className="w-16 justify-between">
+                                                            {port.protocol || 'tcp'}
+                                                            <svg className="ml-1" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                                <path d="M6 9l6 6 6-6"/>
+                                                            </svg>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent>
+                                                        <DropdownMenuItem onClick={() => updatePortField(idx, 'protocol', 'tcp')}>
+                                                            TCP
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => updatePortField(idx, 'protocol', 'udp')}>
+                                                            UDP
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                                 <Button size="icon" variant="ghost" onClick={() => removePortField(idx)}>
                                                     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
                                                 </Button>
