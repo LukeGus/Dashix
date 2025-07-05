@@ -7,3 +7,5 @@ count.txt
 .env
 .nitro
 .tanstack
+/cloudflare/
+/.wrangler/
