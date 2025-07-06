@@ -49,6 +49,8 @@ interface ServiceConfig {
     labels?: { key: string; value: string }[];
     privileged?: boolean;
     read_only?: boolean;
+    shm_size?: string;
+    security_opt?: string[];
 }
 
 interface NetworkConfig {
@@ -101,6 +103,8 @@ function defaultService(): ServiceConfig {
         labels: [],
         privileged: undefined,
         read_only: undefined,
+        shm_size: '',
+        security_opt: [],
     };
 }
 
@@ -140,8 +144,14 @@ function App() {
     const [composeLoading, setComposeLoading] = useState(false);
     const [composeError, setComposeError] = useState<string | null>(null);
     const [composeSearch, setComposeSearch] = useState("");
-    const [composeCache, setComposeCache] = useState<any[]>([]);
-    const [composeCacheTimestamp, setComposeCacheTimestamp] = useState<number | null>(null);
+    const [composeCache, setComposeCache] = useState<any[]>(() => {
+        const cached = localStorage.getItem('composeStoreCache');
+        return cached ? JSON.parse(cached) : [];
+    });
+    const [composeCacheTimestamp, setComposeCacheTimestamp] = useState<number | null>(() => {
+        const cached = localStorage.getItem('composeStoreCacheTimestamp');
+        return cached ? parseInt(cached) : null;
+    });
     const codeFileRef = useRef<HTMLDivElement>(null);
     const [editorSize, setEditorSize] = useState({ width: 0, height: 0 });
 
@@ -220,6 +230,8 @@ function App() {
                 labels: svc.labels && svc.labels.filter(l => l.key).length ? svc.labels.filter(l => l.key).map(({ key, value }) => `"${key}=${value}"`) : undefined,
                 privileged: svc.privileged !== undefined ? svc.privileged : undefined,
                 read_only: svc.read_only !== undefined ? svc.read_only : undefined,
+                shm_size: svc.shm_size || undefined,
+                security_opt: svc.security_opt && svc.security_opt.filter(Boolean).length ? svc.security_opt.filter(Boolean) : undefined,
             };
         });
         for (const name in compose.services) {
@@ -470,6 +482,26 @@ function App() {
         setServices(newServices);
     }
 
+    function updateSecurityOpt(idx: number, value: string) {
+        if (typeof selectedIdx !== 'number') return;
+        const newServices = [...services];
+        newServices[selectedIdx].security_opt![idx] = value;
+        setServices(newServices);
+    }
+    function addSecurityOpt() {
+        if (typeof selectedIdx !== 'number') return;
+        const newServices = [...services];
+        if (!newServices[selectedIdx].security_opt) newServices[selectedIdx].security_opt = [];
+        newServices[selectedIdx].security_opt!.push('');
+        setServices(newServices);
+    }
+    function removeSecurityOpt(idx: number) {
+        if (typeof selectedIdx !== 'number') return;
+        const newServices = [...services];
+        newServices[selectedIdx].security_opt!.splice(idx, 1);
+        setServices(newServices);
+    }
+
     function addNetwork() {
         const newNetworks = [...networks, defaultNetwork()];
         setNetworks(newNetworks);
@@ -582,6 +614,8 @@ function App() {
                     setComposeFiles([]);
                     setComposeCache([]);
                     setComposeCacheTimestamp(null);
+                    localStorage.removeItem('composeStoreCache');
+                    localStorage.removeItem('composeStoreCacheTimestamp');
                     setComposeLoading(false);
                     setComposeError(data.message || "Failed to load files from cache.");
                     return;
@@ -591,6 +625,8 @@ function App() {
                     setComposeFiles([]);
                     setComposeCache([]);
                     setComposeCacheTimestamp(null);
+                    localStorage.removeItem('composeStoreCache');
+                    localStorage.removeItem('composeStoreCacheTimestamp');
                     setComposeLoading(false);
                     return;
                 }
@@ -628,6 +664,8 @@ function App() {
                 setComposeFiles(filteredData);
                 setComposeCache(filteredData);
                 setComposeCacheTimestamp(now);
+                localStorage.setItem('composeStoreCache', JSON.stringify(filteredData));
+                localStorage.setItem('composeStoreCacheTimestamp', now.toString());
                 setComposeLoading(false);
             })
             .catch(() => {
@@ -639,6 +677,8 @@ function App() {
     function refreshComposeStore() {
         setComposeCache([]);
         setComposeCacheTimestamp(null);
+        localStorage.removeItem('composeStoreCache');
+        localStorage.removeItem('composeStoreCacheTimestamp');
     }
 
     function handleAddComposeServiceFull(svc: any, allNetworks: any, allVolumes: any) {
@@ -708,6 +748,8 @@ function App() {
                 : Object.entries(actualServiceData.labels).map(([key, value]: [string, any]) => ({ key, value: String(value) }))) : [],
             privileged: actualServiceData.privileged !== undefined ? !!actualServiceData.privileged : undefined,
             read_only: actualServiceData.read_only !== undefined ? !!actualServiceData.read_only : undefined,
+            shm_size: actualServiceData.shm_size || '',
+            security_opt: Array.isArray(actualServiceData.security_opt) ? actualServiceData.security_opt : [],
         };
         setServices(prev => {
             const updated = [...prev, newService];
@@ -1209,6 +1251,26 @@ function App() {
                                             <Toggle pressed={!!svc.read_only} onPressedChange={v => updateServiceField('read_only', v)} aria-label="Read Only" className="border rounded px-2 py-1">
                                                 <span className="select-none">Read Only</span>
                                             </Toggle>
+                                        </div>
+                                        {/* Shared Memory Size */}
+                                        <div>
+                                            <Label className="mb-1 block">Shared Memory Size</Label>
+                                            <Input value={svc.shm_size || ''} onChange={e => updateServiceField('shm_size', e.target.value)} placeholder="e.g. 1gb, 512m" />
+                                        </div>
+                                        {/* Security Options */}
+                                        <div>
+                                            <Label className="mb-1 block">Security Options</Label>
+                                            <div className="flex flex-col gap-2">
+                                                {svc.security_opt?.map((opt, idx) => (
+                                                    <div key={idx} className="flex gap-2 items-center">
+                                                        <Input value={opt} onChange={e => updateSecurityOpt(idx, e.target.value)} placeholder="e.g. seccomp:unconfined" />
+                                                        <Button size="icon" variant="ghost" onClick={() => removeSecurityOpt(idx)}>
+                                                            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                                <Button size="sm" variant="outline" onClick={addSecurityOpt}>+ Add Security Option</Button>
+                                            </div>
                                         </div>
                                     </CollapsibleContent>
                                 </Collapsible>
