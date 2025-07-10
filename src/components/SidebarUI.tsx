@@ -1,6 +1,8 @@
 import {
     ChevronDown,
     Container,
+    AlertCircleIcon,
+    CheckCircle2Icon,
 } from "lucide-react";
 
 import {useNavigate, useRouter} from "@tanstack/react-router";
@@ -26,7 +28,7 @@ import {
 
 import {Separator} from "@/components/ui/separator"
 import {Button} from "@/components/ui/button"
-import {useState} from "react";
+import {useState, useEffect, useRef} from "react";
 import {CardContent} from "@/components/ui/card.tsx";
 import {
     Form,
@@ -38,6 +40,7 @@ import {
 import {useForm} from "react-hook-form";
 import {Textarea} from "@/components/ui/textarea";
 import axios from 'axios';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const items = [
     {
@@ -60,15 +63,56 @@ export function SidebarUI({}: {}) {
     const location = router.state.location;
     const [showFeedbackCard, setShowFeedbackCard] = useState(false);
     const [feedbackSent, setFeedbackSent] = useState(false);
-    const feedbackForm = useForm({defaultValues: {feedback: ""}});
+    const feedbackForm = useForm({defaultValues: {feedback: "", honey: ""}});
+    const turnstileWidgetRef = useRef<HTMLDivElement>(null);
+    const [captchaToken, setCaptchaToken] = useState("");
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const [feedbackError, setFeedbackError] = useState("");
 
-    const onSubmit = (data: { feedback: string }) => {
-        setFeedbackSent(true);
-        setTimeout(() => {
-            setShowFeedbackCard(false);
+    useEffect(() => {
+        if (!document.getElementById('cf-turnstile-script')) {
+            const script = document.createElement('script');
+            script.id = 'cf-turnstile-script';
+            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+            script.async = true;
+            script.defer = true;
+            document.body.appendChild(script);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (showFeedbackCard && (window as any).turnstile && turnstileWidgetRef.current) {
+            turnstileWidgetRef.current.innerHTML = "";
+            (window as any).turnstile.render(turnstileWidgetRef.current, {
+                sitekey: "0x4AAAAAABkpdrsssAICPqnw",
+                callback: (token: string) => setCaptchaToken(token),
+                "error-callback": () => setCaptchaToken(""),
+                "expired-callback": () => setCaptchaToken("")
+            });
+        }
+        if (!showFeedbackCard) setCaptchaToken("");
+    }, [showFeedbackCard]);
+
+    useEffect(() => {
+        if (showFeedbackCard) {
             setFeedbackSent(false);
             feedbackForm.reset();
-        }, 1500);
+            setCaptchaToken("");
+        } else {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
+        }
+    }, [showFeedbackCard]);
+
+    const onSubmit = (data: { feedback: string; honey?: string }) => {
+        if (!captchaToken) {
+            alert('Please complete the CAPTCHA.');
+            return;
+        }
+        setFeedbackSent(false);
+        setFeedbackError("");
         let apiUrl;
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             apiUrl = 'http://localhost:2000/feedback';
@@ -77,13 +121,36 @@ export function SidebarUI({}: {}) {
         }
         axios.post(apiUrl, {
             feedback: data.feedback,
+            honey: data.honey,
             date: new Date().toLocaleString(),
+            'cf-turnstile-response': captchaToken,
         }, {
             headers: {
                 'Content-Type': 'application/json'
             }
+        }).then(() => {
+            setFeedbackSent(true);
+            timerRef.current = setTimeout(() => {
+                setShowFeedbackCard(false);
+                setFeedbackSent(false);
+                feedbackForm.reset();
+                setCaptchaToken("");
+                timerRef.current = null;
+            }, 1500);
+        }).catch((err) => {
+            if (err.response && (err.response.status === 429 || (err.response.data && err.response.data.error && err.response.data.error.includes('Too many feedback submissions')))) {
+                setFeedbackError("You have made too many feedback requests. Please try again later.");
+            } else {
+                setFeedbackError("Failed to send feedback. Please try again.");
+            }
         });
     };
+
+    useEffect(() => {
+        (window as any).onTurnstileSuccess = (token: string) => {
+            setCaptchaToken(token);
+        };
+    }, []);
 
     return (
         <>
@@ -189,11 +256,52 @@ export function SidebarUI({}: {}) {
                         </button>
                         <div className="mb-4 text-xl font-bold">Feedback</div>
                         <CardContent className="p-0">
-                            {feedbackSent ? (
-                                <div className="font-semibold py-8 text-center">Thank you for your feedback!</div>
-                            ) : (
+                            {feedbackError && (
+                                <Alert
+                                    variant="destructive"
+                                    className="mb-4 bg-card px-4 py-4 flex items-center gap-3 items-center -mb-2"
+                                    style={{ backgroundColor: 'var(--sidebar-bg, #18181b)' }}
+                                >
+                                    <AlertCircleIcon className="h-6 w-6 flex-shrink-0" style={{ color: 'var(--foreground, #fff)' }} />
+                                    <div className="flex flex-col justify-center w-full">
+                                        <AlertTitle className="font-semibold text-foreground leading-tight m-0 p-0">Error</AlertTitle>
+                                        <AlertDescription
+                                            className="m-0 p-0 leading-normal"
+                                            style={{ marginBottom: 0, paddingBottom: 0, lineHeight: '1.4', marginTop: 0 }}
+                                        >
+                                            {feedbackError}
+                                        </AlertDescription>
+                                    </div>
+                                </Alert>
+                            )}
+                            {!feedbackError && feedbackSent && (
+                                <Alert
+                                    className="mb-4 bg-card px-4 py-4 flex items-center gap-3 items-center -mb-2"
+                                    style={{ backgroundColor: 'var(--sidebar-bg, #18181b)' }}
+                                >
+                                    <CheckCircle2Icon className="h-6 w-6 flex-shrink-0" style={{ color: 'var(--foreground, #fff)' }} />
+                                    <div className="flex flex-col justify-center w-full">
+                                        <AlertTitle className="font-semibold text-foreground leading-tight m-0 p-0">Thank you for your feedback!</AlertTitle>
+                                        <AlertDescription
+                                            className="m-0 p-0 leading-normal"
+                                            style={{ marginBottom: 0, paddingBottom: 0, lineHeight: '1.4', marginTop: 0 }}
+                                        >
+                                            Your feedback was submitted successfully.
+                                        </AlertDescription>
+                                    </div>
+                                </Alert>
+                            )}
+                            {!feedbackError && !feedbackSent && (
                                 <Form {...feedbackForm}>
                                     <form onSubmit={feedbackForm.handleSubmit(onSubmit)} className="space-y-4">
+                                        {/* Honeypot field for bots */}
+                                        <input
+                                            type="text"
+                                            autoComplete="off"
+                                            tabIndex={-1}
+                                            style={{ display: 'none' }}
+                                            {...feedbackForm.register('honey')}
+                                        />
                                         <FormField
                                             control={feedbackForm.control}
                                             name="feedback"
@@ -211,6 +319,10 @@ export function SidebarUI({}: {}) {
                                                 </FormItem>
                                             )}
                                         />
+                                        {/* Cloudflare Turnstile CAPTCHA */}
+                                        <div className="flex justify-center">
+                                            <div ref={turnstileWidgetRef}></div>
+                                        </div>
                                         <Separator className="w-full mb-0.5"/>
                                         <Button
                                             type="submit"
