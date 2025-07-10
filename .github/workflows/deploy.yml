@@ -45,4 +45,5 @@ jobs:
           script: |
             cd /var/www/dashix.dev
             pkill -f "node database.cjs" || true
-            nohup node database.cjs > backend.log 2>&1 &
+            nohup setsid node database.cjs > backend.log 2>&1 < /dev/null &
+            exit 0
