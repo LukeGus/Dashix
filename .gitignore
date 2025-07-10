@@ -9,3 +9,4 @@ count.txt
 .tanstack
 /cloudflare/
 /.wrangler/
+/docker/docker-compose.yml

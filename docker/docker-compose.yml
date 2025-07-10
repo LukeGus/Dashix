@@ -1,9 +1,0 @@
-services:
-  mongo:
-    image: mongo
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: dashix
-      MONGO_INITDB_ROOT_PASSWORD: dashix
-    ports:
-      - "27017:27017"
