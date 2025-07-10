@@ -35,12 +35,14 @@ import {
     FormControl,
     FormField,
     FormItem,
-    FormMessage
+    FormMessage,
+    FormLabel
 } from "@/components/ui/form.tsx";
 import {useForm} from "react-hook-form";
 import {Textarea} from "@/components/ui/textarea";
 import axios from 'axios';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 
 const items = [
     {
@@ -63,7 +65,7 @@ export function SidebarUI({}: {}) {
     const location = router.state.location;
     const [showFeedbackCard, setShowFeedbackCard] = useState(false);
     const [feedbackSent, setFeedbackSent] = useState(false);
-    const feedbackForm = useForm({defaultValues: {feedback: "", honey: ""}});
+    const feedbackForm = useForm({defaultValues: {title: "", feedback: "", honey: ""}});
     const turnstileWidgetRef = useRef<HTMLDivElement>(null);
     const [captchaToken, setCaptchaToken] = useState("");
     const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -106,7 +108,7 @@ export function SidebarUI({}: {}) {
         }
     }, [showFeedbackCard]);
 
-    const onSubmit = (data: { feedback: string; honey?: string }) => {
+    const onSubmit = (data: { title: string; feedback: string; honey?: string }) => {
         if (!captchaToken) {
             alert('Please complete the CAPTCHA.');
             return;
@@ -120,6 +122,7 @@ export function SidebarUI({}: {}) {
             apiUrl = `${window.location.origin}/feedback`;
         }
         axios.post(apiUrl, {
+            title: data.title,
             feedback: data.feedback,
             honey: data.honey,
             date: new Date().toLocaleString(),
@@ -302,31 +305,71 @@ export function SidebarUI({}: {}) {
                                             style={{ display: 'none' }}
                                             {...feedbackForm.register('honey')}
                                         />
+                                        {/* Title input */}
                                         <FormField
                                             control={feedbackForm.control}
-                                            name="feedback"
-                                            render={({field}) => (
+                                            name="title"
+                                            render={({ field }) => (
                                                 <FormItem>
+                                                    <FormLabel>Title</FormLabel>
                                                     <FormControl>
-                                                        <Textarea
+                                                        <Input
                                                             {...field}
-                                                            className="min-h-[300px] resize-vertical"
-                                                            placeholder="Let us know your thoughts..."
-                                                            required
+                                                            placeholder="Enter a short title..."
+                                                            maxLength={100}
                                                         />
                                                     </FormControl>
-                                                    <FormMessage/>
+                                                    <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
+                                        {/* Feedback textarea with label */}
+                                        <FormItem>
+                                            <FormLabel>Body</FormLabel>
+                                            <FormField
+                                                control={feedbackForm.control}
+                                                name="feedback"
+                                                render={({ field }) => (
+                                                    <FormControl>
+                                                        <Textarea
+                                                            {...field}
+                                                            className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-colors resize-vertical"
+                                                            placeholder="Let us know your thoughts..."
+                                                            required
+                                                            style={{
+                                                                minHeight: '120px',
+                                                                maxHeight: '40vh',
+                                                                height: '20vh',
+                                                            }}
+                                                        />
+                                                    </FormControl>
+                                                )}
+                                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                        <Separator className="w-full my-3" />
                                         {/* Cloudflare Turnstile CAPTCHA */}
-                                        <div className="flex justify-center">
-                                            <div ref={turnstileWidgetRef}></div>
+                                        <div className="flex justify-center mb-2">
+                                            <div className="w-full relative">
+                                                <div
+                                                    ref={turnstileWidgetRef}
+                                                    className="w-full"
+                                                    style={{ width: '100%' }}
+                                                ></div>
+                                                <style>{`
+                                                  .cf-turnstile,
+                                                  .cf-turnstile > iframe {
+                                                    width: 100% !important;
+                                                    min-width: 0 !important;
+                                                    max-width: 100% !important;
+                                                    display: block !important;
+                                                  }
+                                                `}</style>
+                                            </div>
                                         </div>
-                                        <Separator className="w-full mb-0.5"/>
                                         <Button
                                             type="submit"
-                                            className="w-full mt-2"
+                                            className="w-full mt-0"
                                         >
                                             Submit
                                         </Button>
