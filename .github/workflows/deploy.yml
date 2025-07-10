@@ -36,14 +36,11 @@ jobs:
           source: "dist/*,src/backend/database.cjs"
           target: "/var/www/dashix.dev"
 
-      - name: Restart backend with node
+      - name: Restart backend with systemd
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /var/www/dashix.dev
-            pkill -f "node database.cjs" || true
-            nohup setsid node database.cjs > backend.log 2>&1 < /dev/null &
-            exit 0
+            sudo systemctl restart dashix-backend
