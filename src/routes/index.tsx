@@ -1,6 +1,4 @@
 import {createFileRoute} from '@tanstack/react-router'
-import {ThemeProvider} from "@/components/ThemeProvider.tsx";
-import {SidebarUI} from "@/components/SidebarUI.tsx";
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
