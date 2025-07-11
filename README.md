@@ -24,7 +24,7 @@ If you would like, you can support the project here!\
 [![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/LukeGustafson803)
 
 # Overview
-[Dasix](https://www.dashix.dev/) is a website offering a suite of tools for self-hosters to manage Docker Compose, configs, scheduled tasks, and more with ease.
+[Dashix](https://www.dashix.dev/) is a website offering a suite of tools for self-hosters to manage Docker Compose, configs, scheduled tasks, and more with ease.
 
 # Features
 - Docker-compose builder (drag/drop system to configure and create a docker-compose file)
