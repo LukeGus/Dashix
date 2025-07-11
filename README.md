@@ -24,9 +24,9 @@ If you would like, you can support the project here!\
 [![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/LukeGustafson803)
 
 ### Other Projects
-[Termix](https://github.com/LukeGus/Termix) - Clientless web-based SSH terminal emulator that stores and manages your connection details
-[Tunnelix](https://github.com/LukeGus/Tunnelix) - Clientless web-based reverse SSH control panel that stores and manages your tunnels through SSH
-[Confix](https://github.com/LukeGus/Confix) - Self-hosted config file manager with persistent session history and quick access
+- **[Termix](https://github.com/LukeGus/Termix)** - Clientless web-based SSH terminal emulator that stores and manages your connection details
+- **[Tunnelix](https://github.com/LukeGus/Tunnelix)** - Clientless web-based reverse SSH control panel that stores and manages your tunnels through SSH  
+- **[Confix](https://github.com/LukeGus/Confix)** - Self-hosted config file manager with persistent session history and quick access
 
 # Overview
 [Dashix](https://www.dashix.dev/) is a website offering a suite of tools for self-hosters to manage Docker Compose, configs, scheduled tasks, and more with ease.
