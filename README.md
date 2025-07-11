@@ -40,17 +40,16 @@ If you would like, you can support the project here!\
 - Self-hosted version
 - Docker Compose Builder (build upon the existing version)
     - AI-generated Compose files
-    - Natural language Compose generator
     - Validate & reformat Compose files
     - Convert Compose to:
         - docker run
         - systemd
         - .env usage
-    - Generate Komodo .toml from stacks
-    - Redact sensitive data for sharing
+    - Generate Komodo .toml from portainer stacks
+    - Redact sensitive data in a compose file/config for sharing
 - Config Builder (gethomepage.dev, and more)
-- Scheduler Builder (Cron, GitHub Actions, Systemd)
-    - Select time, command, and file name
+- Scheduler Builder (Cron, GitHub Actions, Systemd, etc.)
+    - Select time, command, file name, etc.
 - Quick Web-SSH (web-based SSH access)
 
 # Installation
