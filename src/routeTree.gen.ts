@@ -9,9 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DockerComposeBuilderRouteImport } from './routes/docker/compose-builder'
 
+const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
+  id: '/terms-of-service',
+  path: '/terms-of-service',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -25,32 +37,59 @@ const DockerComposeBuilderRoute = DockerComposeBuilderRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/docker/compose-builder': typeof DockerComposeBuilderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/docker/compose-builder': typeof DockerComposeBuilderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/docker/compose-builder': typeof DockerComposeBuilderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/docker/compose-builder'
+  fullPaths: '/' | '/privacy' | '/terms-of-service' | '/docker/compose-builder'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/docker/compose-builder'
-  id: '__root__' | '/' | '/docker/compose-builder'
+  to: '/' | '/privacy' | '/terms-of-service' | '/docker/compose-builder'
+  id:
+    | '__root__'
+    | '/'
+    | '/privacy'
+    | '/terms-of-service'
+    | '/docker/compose-builder'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsOfServiceRoute: typeof TermsOfServiceRoute
   DockerComposeBuilderRoute: typeof DockerComposeBuilderRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms-of-service': {
+      id: '/terms-of-service'
+      path: '/terms-of-service'
+      fullPath: '/terms-of-service'
+      preLoaderRoute: typeof TermsOfServiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -70,6 +109,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsOfServiceRoute: TermsOfServiceRoute,
   DockerComposeBuilderRoute: DockerComposeBuilderRoute,
 }
 export const routeTree = rootRouteImport

@@ -863,7 +863,7 @@ function App() {
                                 onClick={() => setComposeStoreOpen(false)}
                             >
                                 <div
-                                    className="relative max-w-screen-3xl w-[98vw] min-h-[90vh] rounded-2xl border bg-background p-8 pt-4 shadow-xl"
+                                    className="relative max-w-screen-3xl w-[98vw] h-[90vh] rounded-2xl border bg-background p-8 pt-4 shadow-xl flex flex-col"
                                     onClick={e => e.stopPropagation()}
                                 >
                                     <div className="absolute top-4 right-4 flex items-center gap-2">
@@ -915,48 +915,50 @@ function App() {
                                         onChange={e => setComposeSearch(e.target.value)}
                                         className="mb-4 mt-0 text-base"
                                     />
-                                    {composeLoading ? (
-                                        <div className="h-32 flex items-center justify-center text-muted-foreground text-lg">
-                                            {composeCache.length > 0 ? 'Refreshing...' : 'Loading...'}
-                                        </div>
-                                    ) : composeError ? (
-                                        <div className="h-32 flex items-center justify-center text-destructive text-lg">{composeError}</div>
-                                    ) : composeFiles.length === 0 ? (
-                                        <div className="h-32 flex items-center justify-center text-muted-foreground text-lg">No .yml files found in the repo.</div>
-                                    ) : (
-                                        <div className="w-full">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mt-4 max-h-[60vh] overflow-y-auto">
-                                                {composeFiles
-                                                    .filter((file: any) => 
-                                                        file.name.toLowerCase().includes(composeSearch.toLowerCase()) ||
-                                                        Object.values(file.services || {}).some((svc: any) => 
-                                                            svc.name.toLowerCase().includes(composeSearch.toLowerCase())
-                                                        )
-                                                    )
-                                                    .map((file: any) => (
-                                                        <div key={file.name} className="bg-card rounded-lg shadow p-4 flex flex-col gap-2 items-start justify-between border border-border min-h-0">
-                                                            <div className="font-bold text-lg break-words w-full min-h-0">{file.name.replace('.yml', '')}</div>
-                                                            <div className="text-sm text-muted-foreground break-words w-full min-h-0">{Object.keys(file.services || {}).length} service{Object.keys(file.services || {}).length !== 1 ? 's' : ''}</div>
-                                                            <Button size="sm" className="mt-2 w-full" onClick={() => {
-                                                                Object.entries(file.services || {}).forEach(([serviceName, serviceData]: [string, any]) => {
-                                                                    handleAddComposeServiceFull({
-                                                                        name: serviceName,
-                                                                        image: serviceData.image || '',
-                                                                        rawService: serviceData,
-                                                                    }, file.networks, file.volumes);
-                                                                });
-                                                            }}>
-                                                                Add All Services
-                                                            </Button>
-                                                        </div>
-                                                    ))
-                                                }
-                                                {composeFiles.every(file => file.services.length === 0) && (
-                                                    <div className="col-span-full h-32 flex items-center justify-center text-muted-foreground text-lg">No services found in .yml files.</div>
-                                                )}
+                                    <div className="flex-1 overflow-hidden">
+                                        {composeLoading ? (
+                                            <div className="h-32 flex items-center justify-center text-muted-foreground text-lg">
+                                                {composeCache.length > 0 ? 'Refreshing...' : 'Loading...'}
                                             </div>
-                                        </div>
-                                    )}
+                                        ) : composeError ? (
+                                            <div className="h-32 flex items-center justify-center text-destructive text-lg">{composeError}</div>
+                                        ) : composeFiles.length === 0 ? (
+                                            <div className="h-32 flex items-center justify-center text-muted-foreground text-lg">No .yml files found in the repo.</div>
+                                        ) : (
+                                            <div className="w-full h-full overflow-y-auto">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mt-4 pb-4">
+                                                    {composeFiles
+                                                        .filter((file: any) => 
+                                                            file.name.toLowerCase().includes(composeSearch.toLowerCase()) ||
+                                                            Object.values(file.services || {}).some((svc: any) => 
+                                                                svc.name.toLowerCase().includes(composeSearch.toLowerCase())
+                                                            )
+                                                        )
+                                                        .map((file: any) => (
+                                                            <div key={file.name} className="bg-card rounded-lg shadow p-4 flex flex-col gap-2 items-start justify-between border border-border min-h-0">
+                                                                <div className="font-bold text-lg break-words w-full min-h-0">{file.name.replace('.yml', '')}</div>
+                                                                <div className="text-sm text-muted-foreground break-words w-full min-h-0">{Object.keys(file.services || {}).length} service{Object.keys(file.services || {}).length !== 1 ? 's' : ''}</div>
+                                                                <Button size="sm" className="mt-2 w-full" onClick={() => {
+                                                                    Object.entries(file.services || {}).forEach(([serviceName, serviceData]: [string, any]) => {
+                                                                        handleAddComposeServiceFull({
+                                                                            name: serviceName,
+                                                                            image: serviceData.image || '',
+                                                                            rawService: serviceData,
+                                                                        }, file.networks, file.volumes);
+                                                                    });
+                                                                }}>
+                                                                    Add All Services
+                                                                </Button>
+                                                            </div>
+                                                        ))
+                                                    }
+                                                    {composeFiles.every(file => file.services.length === 0) && (
+                                                        <div className="col-span-full h-32 flex items-center justify-center text-muted-foreground text-lg">No services found in .yml files.</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}
