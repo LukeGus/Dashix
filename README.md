@@ -53,7 +53,7 @@ If you would like, you can support the project here!\
 - Quick Web-SSH (web-based SSH access)
 
 # Installation
-Currently, Dashix only exists as a public website, however  a self-hosted version is planned.
+Dashix currently only exists as a public website, however a self-hosted version is planned.
 
 # Support
 If you need help with Dashix, you can join the [Discord](https://discord.gg/jVQGdvHDrf) server and visit the support channel. You can also open an issue or open a pull request on the [GitHub](https://github.com/LukeGus/Dashix/issues) repo or use the built-in feedback system on the Dashix sidebar.
