@@ -57,7 +57,7 @@ Currently, Dashix only exists as a public website, however  a self-hosted versio
 
 # Support
 If you need help with Dashix, you can join the [Discord](https://discord.gg/jVQGdvHDrf) server and visit the support channel. You can also open an issue or open a pull request on the [GitHub](https://github.com/LukeGus/Dashix/issues) repo or use the built-in feedback system on the Dashix sidebar.
-If you would like to support me financially, you can on [Paypal](https://paypal.me/LukeGustafson803).
+If you would like to support me financially, you can on [PayPal](https://paypal.me/LukeGustafson803).
 
 # License
 Distributed under the MIT license. See LICENSE for more information.
