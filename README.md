@@ -17,7 +17,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/LukeGus/Dashix">
-    <img alt="Dashix Banner" src=./public/favicon.ico style="width: 125px; height: auto;">  </a>
+    <img alt="Dashix Banner" src=./frontend/public/favicon.ico style="width: 125px; height: auto;">  </a>
 </p>
 
 If you would like, you can support the project here!\
