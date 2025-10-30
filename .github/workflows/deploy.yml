@@ -41,7 +41,7 @@ jobs:
             package-lock.json
           target: /var/www/dashix.dev
 
-      - name: Restart backend service
+      - name: Restart backend with systemd
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
