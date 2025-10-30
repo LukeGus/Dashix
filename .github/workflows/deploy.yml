@@ -28,14 +28,27 @@ jobs:
           npm ci
           npm run build
 
-      - name: Deploy files via SCP
+      - name: Deploy frontend and backend files via SCP
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "frontend/build/*,src/backend/database.cjs,package.json,package-lock.json"
-          target: "/var/www/dashix.dev"
+          source: |
+            frontend/build/*
+            src/backend/database.cjs
+            package.json
+            package-lock.json
+          target: /var/www/dashix.dev
+
+      - name: Restart backend service
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            sudo systemctl restart dashix-backend
 
       - name: Install backend dependencies
         uses: appleboy/ssh-action@master
@@ -45,20 +58,13 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /var/www/dashix.dev
-            npm ci --omit=dev
+            npm install
 
-      - name: Restart backend service
+      - name: Restart nginx
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script: sudo systemctl restart dashix-backend
-
-      - name: Restart Nginx
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: sudo service nginx restart
+          script: |
+            sudo service nginx restart
